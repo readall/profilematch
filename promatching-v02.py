@@ -130,7 +130,7 @@ def profile_matching_v1():
 
 
 
-def profile_matching_v2(input_jd, resume_input):
+def profile_matching_v2(input_jd, input_resume):
     model = SentenceTransformer('paraphrase-MiniLM-L6-v2', cache_folder="/workspace/app/data/" )
     joined_list = []
     joined_list.append(input_jd)
@@ -236,7 +236,8 @@ def compare_documents_gr(input_jd, input_resume):
             nouns_resume.add(token.text)
     print("#nouns_resume"*10, '\n', nouns_resume, '\n', "#"*100)
     match_score = profile_matching_v2(input_jd, input_resume)
-    return match_score, missing_keywords(nouns_jd, nouns_resume)
+    missing_per, missing_word =  missing_keywords(nouns_jd, nouns_resume)
+    return "Matching percentage: "+ str(match_score) , "Missing keyword percentage: "+ str(missing_per), missing_word
     #print(compare_nouns(nouns_jd, nouns_resume))
 
 
@@ -248,12 +249,28 @@ def compare_documents_gr(input_jd, input_resume):
 
 import gradio as gr
 
-iface = gr.Interface(fn=compare_documents_gr, 
+iface = gr.Interface(fn=compare_documents_gr,
+            title = "Resume-Job-Matching",
+            description = "Find how suitable is your resume for the Job opening",
+            article = "Copy paste the job description and resume in respective places",
             inputs=["text", "text"],
             outputs=["text", "text", "text"],
             server_port=7860,
             server_name="0.0.0.0")
 
+
+
+#iface = gr.Interface(fn=compare_documents_gr, 
+#            inputs=["text", "text"],
+#            outputs=[gr.outputs.Textbox(label="Match Percentage"), 
+#                gr.outputs.Textbox(lebel="Missin keyword percentage"), 
+#                gr.outputs.Textbox(label="Missing keywords")
+#                ],
+#            server_port=7860,
+#            server_name="0.0.0.0")
+
 #iface.launch(share=True)
+
+
 iface.launch()
 
