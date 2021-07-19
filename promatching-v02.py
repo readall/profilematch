@@ -13,6 +13,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics.pairwise import euclidean_distances
 from sentence_transformers import SentenceTransformer, util
 
+import math
 import torch
 import io
 
@@ -30,12 +31,49 @@ JD_FILE = "/workspace/app/code/jd.txt"
 RESUME_FILE = "/workspace/app/code/resume.txt"
 unwanted_chars = ['\n', '\n\n', '\n\n\n', '\t','\t\t', '\t\t\t']
 
+def increment_visitor_count():
+    count = 0
+    with io.open('counter.txt', 'r') as f:
+        current_count = int(next(f))
+        count = current_count + 1
+        f.close()
+    
+    with io.open('counter.txt', 'w') as ff:
+        ff.write('%d' % count)
+        ff.close()
+
+
+
+
 def load_file(name=JD_FILE):
     content_list = []
 
     with io.open(name, 'rt') as f:
         content_list = f.readlines()
     return content_list
+
+
+
+def remove_duplicates(orig_list):
+    lowercase_list = [each_string.lower() for each_string in orig_list]
+    new_list = list(dict.fromkeys(lowercase_list))
+    return new_list
+
+
+
+def truncate_float(number, decimals=0):
+    """
+    Returns a value truncated to a specific number of decimal places.
+    """
+    if not isinstance(decimals, int):
+        raise TypeError("decimal places must be an integer.")
+    elif decimals < 0:
+        raise ValueError("decimal places has to be 0 or more.")
+    elif decimals == 0:
+        return math.trunc(number)
+
+    factor = 10.0 ** decimals
+    return math.trunc(number * factor) / factor
 
 
 def extract_keywords(input_list):
@@ -61,15 +99,17 @@ def extract_keywords(input_list):
     # Extract candidate words/phrases
     count = CountVectorizer(ngram_range=n_gram_range, stop_words=stop_words).fit([full_sentence])
     candidates = count.get_feature_names()
+    candidates_no_dup = remove_duplicates(candidates)
     #print(candidates)
-    return candidates
+    return candidates_no_dup
 
 
 
 def missing_keywords(key_jd, key_resume):
     missing_in_resume = [word for word in key_jd if not word in key_resume]
-    missing_percent = 100*len(missing_in_resume)/len(key_jd)
-    return missing_percent, missing_in_resume
+    keywords_no_dup = remove_duplicates(missing_in_resume)
+    missing_percent = 100*len(keywords_no_dup)/len(key_jd)
+    return truncate_float(missing_percent), keywords_no_dup
 
 
 
@@ -179,7 +219,7 @@ def profile_matching_v2(input_jd, input_resume):
     #keyword_resume = extract_keywords(input_resume)
     #print("#$"*30)
     #print(missing_keywords(keyword_jd, keyword_resume))
-    return score*100
+    return truncate_float(score*100)
 
 
 
@@ -218,7 +258,7 @@ def compare_documents_gr(input_jd, input_resume):
     # key_resume = extract_keywords(RESUME_FILE)
     # nlp = spacy.load("en_core_web_trf") # we have made this global
     # input_jd = ' '.join(load_file(JD_FILE))
-
+    increment_visitor_count()
     doc_jd = nlp(input_jd)
     noun_phrases_jd = set(chunk.text.strip().lower() for chunk in doc_jd.noun_chunks)
     nouns_jd = set()
