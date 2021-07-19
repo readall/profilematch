@@ -64,6 +64,7 @@ def remove_duplicates(orig_list):
 def truncate_float(number, decimals=0):
     """
     Returns a value truncated to a specific number of decimal places.
+    See if we can improve this later with numpy
     """
     if not isinstance(decimals, int):
         raise TypeError("decimal places must be an integer.")
